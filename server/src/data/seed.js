@@ -14,7 +14,7 @@ const thumbnails = [
   "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=900&q=80",
   "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=900&q=80",
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1523437113738-bbd3cc89fb19?auto=format&fit=crop&w=900&q=80",
   "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=80",
   "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=900&q=80",
   "https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=900&q=80",
@@ -53,7 +53,7 @@ const run = async () => {
   await deb.save();
   await maya.save();
 
-  const baseVideoUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+  const baseVideoUrl = "https://cdn.pixabay.com/video/2023/07/12/171343-845465072_large.mp4";
   const items = [
     ["React JS Roadmap With Projects", "A practical React roadmap with project checkpoints for frontend learners.", "React", code, deb, 15200, "14:24"],
     ["Build a MERN Auth Flow", "JWT login, protected routes, hashed passwords, and polished auth forms.", "Web Development", code, deb, 23400, "18:02"],
