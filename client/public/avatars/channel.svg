@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Channel avatar">
+  <rect width="160" height="160" rx="80" fill="#f2f2f2"/>
+  <rect x="33" y="48" width="94" height="64" rx="16" fill="#ff0033"/>
+  <path d="M71 66v28l26-14z" fill="#fff"/>
+</svg>
