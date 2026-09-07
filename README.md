@@ -290,6 +290,10 @@ The frontend production output is created in `client/dist/`.
 - Keep `package-lock.json`, `client/package-lock.json`, and `server/package-lock.json`
 - Include `README.md`, `TESTING.md`, `DEPENDENCY_AUDIT.md`, and `ASSIGNMENT_CHECKLIST.md`
 
+## Deployment
+
+Use [DEPLOYMENT.md](DEPLOYMENT.md) for the Render backend and Netlify frontend deployment steps.
+
 ## Author
 
 Deb Gourab Biswas
