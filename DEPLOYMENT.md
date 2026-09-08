@@ -18,7 +18,7 @@ Example:
 mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/youtube_clone_capstone
 ```
 
-Do not commit the real URI.
+Do not commit the real URI. When pasting the URI into Render, paste it as plain text with no quotes, no leading/trailing spaces, and no Markdown escape backslashes. For example, use `_` and `@`, not `\_` or `\@`.
 
 ## 2. Deploy Backend On Render
 
@@ -40,6 +40,12 @@ Environment variables:
 MONGODB_URI=<your MongoDB Atlas URI>
 JWT_SECRET=<long random secret>
 CLIENT_URL=<your Netlify site URL after frontend deployment>
+```
+
+Recommended Atlas URI shape:
+
+```text
+mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/youtube_clone_capstone?retryWrites=true&w=majority&appName=Cluster0
 ```
 
 After Render deploys, your API URL will look like:
