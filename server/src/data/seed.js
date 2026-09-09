@@ -21,37 +21,60 @@ const thumbnails = [
   "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=80"
 ];
 
+const shouldReset = process.argv.includes("--reset") || process.env.SEED_RESET === "true";
+
 const run = async () => {
   await connectDB();
-  await Promise.all([User.deleteMany({}), Channel.deleteMany({}), Video.deleteMany({}), Comment.deleteMany({})]);
+
+  if (shouldReset) {
+    await Promise.all([User.deleteMany({}), Channel.deleteMany({}), Video.deleteMany({}), Comment.deleteMany({})]);
+  } else if (await Video.exists({})) {
+    console.log("Seed skipped because videos already exist. Run `npm run seed -- --reset` to replace demo data.");
+    await mongoose.disconnect();
+    return;
+  }
 
   const password = await bcrypt.hash("password123", 10);
-  const deb = await User.create({ username: "Deb", email: "deb@example.com", password, avatar: "/avatars/deb.svg" });
-  const maya = await User.create({ username: "MayaCreates", email: "maya@example.com", password, avatar: "/avatars/maya.svg" });
+  const deb = await User.findOneAndUpdate(
+    { email: "deb@example.com" },
+    { username: "Deb", email: "deb@example.com", password, avatar: "/avatars/deb.svg" },
+    { returnDocument: "after", upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  );
+  const maya = await User.findOneAndUpdate(
+    { email: "maya@example.com" },
+    { username: "MayaCreates", email: "maya@example.com", password, avatar: "/avatars/maya.svg" },
+    { returnDocument: "after", upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  );
 
-  const code = await Channel.create({
-    channelName: "Code with Deb",
-    handle: "codewithdeb",
-    owner: deb._id,
-    description: "Coding tutorials and tech reviews by Deb.",
-    channelBanner: "https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?auto=format&fit=crop&w=1400&q=80",
-    avatar: "/avatars/deb.svg",
-    subscribers: 5200
-  });
-  const studio = await Channel.create({
-    channelName: "Maya Studio",
-    handle: "mayastudio",
-    owner: maya._id,
-    description: "Design, productivity, and creative workflow videos.",
-    channelBanner: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80",
-    avatar: "/avatars/maya.svg",
-    subscribers: 17800
-  });
+  const code = await Channel.findOneAndUpdate(
+    { handle: "codewithdeb" },
+    {
+      channelName: "Code with Deb",
+      handle: "codewithdeb",
+      owner: deb._id,
+      description: "Coding tutorials and tech reviews by Deb.",
+      channelBanner: "https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?auto=format&fit=crop&w=1400&q=80",
+      avatar: "/avatars/deb.svg",
+      subscribers: 5200
+    },
+    { returnDocument: "after", upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  );
+  const studio = await Channel.findOneAndUpdate(
+    { handle: "mayastudio" },
+    {
+      channelName: "Maya Studio",
+      handle: "mayastudio",
+      owner: maya._id,
+      description: "Design, productivity, and creative workflow videos.",
+      channelBanner: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80",
+      avatar: "/avatars/maya.svg",
+      subscribers: 17800
+    },
+    { returnDocument: "after", upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  );
 
-  deb.channels = [code._id];
-  maya.channels = [studio._id];
-  await deb.save();
-  await maya.save();
+  await User.findByIdAndUpdate(deb._id, { $addToSet: { channels: code._id } });
+  await User.findByIdAndUpdate(maya._id, { $addToSet: { channels: studio._id } });
 
   const baseVideoUrl = "https://cdn.pixabay.com/video/2023/07/12/171343-845465072_large.mp4";
   const items = [
