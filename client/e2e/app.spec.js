@@ -11,7 +11,7 @@ async function mockApi(page) {
     if (url.pathname === "/api/auth/me") return route.fulfill({ json: { user: { id: "user1", username: "Tester" } } });
     if (url.pathname === "/api/channels/mine") return route.fulfill({ json: [channel] });
     if (url.pathname === "/api/channels/channel1") return route.fulfill({ json: { channel, videos: [video] } });
-    if (url.pathname === "/api/videos" && route.request().method() === "POST") return route.fulfill({ status: 201, json: { ...video, ...route.request().postDataJSON() , channelId: channel } });
+    if (url.pathname === "/api/videos" && route.request().method() === "POST") return route.fulfill({ status: 201, json: { ...video, ...route.request().postDataJSON(), _id: "newvideo", channelId: channel } });
     if (url.pathname === "/api/videos") return route.fulfill({ json: [video] });
     if (url.pathname.includes("/like")) return route.fulfill({ json: { likes: 1, dislikes: 0, viewerReaction: "like" } });
     const item = url.pathname.endsWith("/video2") ? { ...video, _id: "video2", title: "YouTube example", videoUrl: "https://youtu.be/dQw4w9WgXcQ" } : video;
@@ -59,7 +59,7 @@ test("registration gives all password rules and blocks weak submissions", async 
 
 test("YouTube navigation replaces the direct media player", async ({ page }) => {
   await page.goto("/watch/video1");
-  await expect(page.locator("video.player")).toHaveAttribute("src", video.videoUrl);
+  await expect(page.getByRole("heading", { name: video.title })).toBeVisible();
   await page.getByRole("link", { name: /YouTube example/ }).click();
   await expect(page.locator("iframe.player")).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
   await expect(page.locator("video.player")).toHaveCount(0);

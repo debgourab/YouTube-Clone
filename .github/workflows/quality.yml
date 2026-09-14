@@ -1,8 +1,11 @@
 name: Quality checks
 on:
   push:
-    branches: [main, improvements/playback-state-ui]
+    branches: [main]
   pull_request:
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -15,21 +18,7 @@ jobs:
         with:
           node-version: 22
       - name: Install client dependencies
-        run: npm install --prefix client --no-audit --no-fund
-      - name: Report lockfile changes
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-          import { execFileSync } from "node:child_process";
-          const old = JSON.parse(execFileSync("git", ["show", "HEAD:client/package-lock.json"], { encoding: "utf8" }));
-          const next = JSON.parse(fs.readFileSync("client/package-lock.json", "utf8"));
-          for (const [key, value] of Object.entries(next.packages)) {
-            if (JSON.stringify(value) !== JSON.stringify(old.packages[key])) console.log("LOCK_ENTRY " + JSON.stringify([key, value]));
-          }
-          for (const key of Object.keys(old.packages)) {
-            if (!(key in next.packages)) console.log("LOCK_DELETE " + JSON.stringify(key));
-          }
-          NODE
+        run: npm ci --prefix client --no-audit --no-fund
       - name: Install server dependencies
         run: npm ci --prefix server --no-audit --no-fund
       - name: Lint client and server

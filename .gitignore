@@ -16,3 +16,6 @@ coverage/
 .DS_Store
 *.log
 npm-debug.log*
+
+client/test-results/
+client/playwright-report/

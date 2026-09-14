@@ -33,7 +33,7 @@ Checks:
 - `npx playwright install chromium`
 - `npm run test:e2e`
 
-GitHub Actions runs these checks on the improvement branch and pull requests. Browser tests mock the API and generate a real WebM fixture. They cover client behavior independently of a live database.
+GitHub Actions runs these checks on pull requests and main using npm ci and the committed lockfiles. Browser tests mock the API and generate a real WebM fixture. They cover client behavior independently of a live database.
 
 ## Video publishing
 
