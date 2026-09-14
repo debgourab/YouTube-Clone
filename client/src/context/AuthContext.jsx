@@ -1,72 +1,19 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import api from "../api.js";
+// Compatibility hook: authentication now has one source of truth in Redux.
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { clearSession, loginUser, registerUser } from "../store/authSlice.js";
+import { videosApi } from "../store/videosApi.js";
+import { saveToken } from "../utils/session.js";
 
-const AuthContext = createContext(null);
-
-const readStoredUser = () => {
-  try {
-    const raw = localStorage.getItem("yt_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    localStorage.removeItem("yt_user");
-    return null;
-  }
-};
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(readStoredUser);
-  const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-
+export function useAuth() {
+  const dispatch = useDispatch();
+  const state = useSelector((store) => store.auth);
+  const login = useCallback((payload) => dispatch(loginUser(payload)).unwrap(), [dispatch]);
+  const register = useCallback((payload) => dispatch(registerUser(payload)).unwrap(), [dispatch]);
   const logout = useCallback(() => {
-    localStorage.removeItem("yt_token");
-    localStorage.removeItem("yt_user");
-    setUser(null);
-  }, []);
-
-  useEffect(() => {
-    const token = localStorage.getItem("yt_token");
-    if (!token) {
-      setInitializing(false);
-      return;
-    }
-
-    api.get("/auth/me")
-      .then(({ data }) => {
-        setUser(data.user);
-        localStorage.setItem("yt_user", JSON.stringify(data.user));
-      })
-      .catch(logout)
-      .finally(() => setInitializing(false));
-  }, [logout]);
-
-  const register = useCallback(async (payload) => {
-    setLoading(true);
-    try {
-      await api.post("/auth/register", payload);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const login = useCallback(async (payload) => {
-    setLoading(true);
-    try {
-      const { data } = await api.post("/auth/login", payload);
-      localStorage.setItem("yt_token", data.token);
-      localStorage.setItem("yt_user", JSON.stringify(data.user));
-      setUser(data.user);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const value = useMemo(
-    () => ({ user, loading, initializing, register, login, logout, setUser }),
-    [user, loading, initializing, register, login, logout]
-  );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => useContext(AuthContext);
+    saveToken("");
+    dispatch(clearSession());
+    dispatch(videosApi.util.resetApiState());
+  }, [dispatch]);
+  return { ...state, login, register, logout };
+}

@@ -26,7 +26,7 @@ const videoSchema = new mongoose.Schema(
     dislikes: { type: Number, default: 0, min: 0 },
     likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     dislikedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    duration: { type: String, default: "12:48" },
+    duration: { type: String, default: "" },
     uploadDate: { type: Date, default: Date.now }
   },
   { timestamps: true }

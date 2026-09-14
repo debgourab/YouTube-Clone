@@ -1,10 +1,10 @@
-import { Bell, LogOut, Menu, Mic, Play, PlusCircle, Search, UserCircle } from "lucide-react";
+import { LogOut, Menu, Play, PlusCircle, Search, UserCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFallbackUserAvatar } from "../utils/imageFallback.js";
 
-export default function Header() {
+export default function Header({ expanded, onToggle }) {
   const { user, logout } = useAuth();
   const [params] = useSearchParams();
   const [query, setQuery] = useState(params.get("search") || "");
@@ -30,7 +30,7 @@ export default function Header() {
   return (
     <header className="header">
       <div className="brand-row">
-        <button className="icon-button" aria-label="Toggle sidebar" onClick={() => window.dispatchEvent(new Event("toggle-sidebar"))}>
+        <button className="icon-button" id="menu-toggle" aria-label="Toggle sidebar" aria-controls="site-sidebar" aria-expanded={expanded} onClick={onToggle}>
           <Menu size={22} />
         </button>
         <Link className="brand" to="/">
@@ -49,14 +49,12 @@ export default function Header() {
           aria-label="Search videos by title"
         />
         <button type="submit" aria-label="Search"><Search size={20} /></button>
-        <button type="button" className="voice-button" aria-label="Voice search"><Mic size={18} /></button>
       </form>
 
       <div className="account">
         {user ? (
           <>
             <Link className="icon-button hide-small" to="/studio" aria-label="Create or manage videos"><PlusCircle size={21} /></Link>
-            <button className="icon-button hide-small" type="button" aria-label="Notifications"><Bell size={21} /></button>
             <img src={user.avatar || "/avatars/user.svg"} alt="" className="avatar" onError={useFallbackUserAvatar} />
             <span className="username">{user.username}</span>
             <button className="icon-button" type="button" aria-label="Log out" onClick={logout}><LogOut size={20} /></button>

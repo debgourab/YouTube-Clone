@@ -1,7 +1,8 @@
 import { Edit2, Send, ThumbsDown, ThumbsUp, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api.js";
+import VideoPlayer from "../components/VideoPlayer.jsx";
 import VideoCard from "../components/VideoCard.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { formatDate, formatViews } from "../utils/categories.js";
@@ -18,45 +19,51 @@ export default function Watch() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(() => {
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setError("");
 
-    api.get(`/videos/${id}`)
+    api.get(`/videos/${id}`, { signal: controller.signal })
       .then(({ data }) => {
+        if (controller.signal.aborted) return;
         setVideo(data.video);
-        setComments(data.comments);
-        setRelated(data.related || []);
+        setComments(Array.isArray(data.comments) ? data.comments : []);
+        setRelated(Array.isArray(data.related) ? data.related : []);
       })
       .catch((err) => {
+        if (controller.signal.aborted) return;
         setVideo(null);
         setComments([]);
         setRelated([]);
         setError(err.response?.data?.message || "Video not found.");
       })
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [id, user?.id]);
 
   const react = async (action) => {
     if (!user) return setError("Please sign in to like or dislike videos.");
+    if (pending) return;
     setError("");
+    setPending(true);
 
     try {
       const { data } = await api.put(`/videos/${id}/${action}`);
-      setVideo((current) => ({ ...current, ...data }));
+      setVideo((current) => ({ ...current, likes: data.likes, dislikes: data.dislikes, viewerReaction: data.viewerReaction }));
     } catch (err) {
       setError(err.response?.data?.message || "Could not update reaction.");
-    }
+    } finally { setPending(false); }
   };
 
   const saveComment = async (event) => {
     event.preventDefault();
     if (!user) return setError("Please sign in to comment.");
     if (!text.trim()) return setError("Comment text is required.");
+    if (pending) return;
+    setPending(true);
     setError("");
 
     try {
@@ -71,17 +78,19 @@ export default function Watch() {
       setText("");
     } catch (err) {
       setError(err.response?.data?.message || "Could not save comment.");
-    }
+    } finally { setPending(false); }
   };
 
   const removeComment = async (commentId) => {
+    if (pending) return;
+    setPending(true);
     setError("");
     try {
       await api.delete(`/comments/${commentId}`);
       setComments((items) => items.filter((item) => item._id !== commentId));
     } catch (err) {
       setError(err.response?.data?.message || "Could not delete comment.");
-    }
+    } finally { setPending(false); }
   };
 
   const startEdit = (comment) => {
@@ -110,7 +119,7 @@ export default function Watch() {
     <main className="watch-page">
       <section className="watch-main">
         <section className="watch-content">
-          <video className="player" src={video.videoUrl} controls poster={video.thumbnailUrl} />
+          <VideoPlayer key={video.videoUrl} url={video.videoUrl} poster={video.thumbnailUrl} title={video.title} />
           <h1>{video.title}</h1>
           <div className="watch-actions">
             <Link className="channel-chip" to={`/channel/${video.channelId?._id}`}>
@@ -124,6 +133,7 @@ export default function Watch() {
               <button
                 type="button"
                 className={video.viewerReaction === "like" ? "active" : ""}
+                disabled={pending} aria-label="Like video" aria-pressed={video.viewerReaction === "like"}
                 onClick={() => react("like")}
               >
                 <ThumbsUp size={18} /> {video.likes}
@@ -131,6 +141,7 @@ export default function Watch() {
               <button
                 type="button"
                 className={video.viewerReaction === "dislike" ? "active" : ""}
+                disabled={pending} aria-label="Dislike video" aria-pressed={video.viewerReaction === "dislike"}
                 onClick={() => react("dislike")}
               >
                 <ThumbsDown size={18} /> {video.dislikes}
@@ -146,6 +157,7 @@ export default function Watch() {
             <h2>{comments.length} Comments</h2>
             <form className="comment-form" onSubmit={saveComment}>
               <input
+                maxLength={1000} disabled={!user || pending}
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 placeholder={user ? "Add a comment..." : "Sign in to comment"}
@@ -156,9 +168,9 @@ export default function Watch() {
                   <X size={18} />
                 </button>
               )}
-              <button type="submit" aria-label={editing ? "Update comment" : "Send comment"}><Send size={18} /></button>
+              <button type="submit" disabled={!user || pending || !text.trim()} aria-label={editing ? "Update comment" : "Send comment"}><Send size={18} /></button>
             </form>
-            {error && <p className="form-error">{error}</p>}
+            {error && <p className="form-error" role="alert">{error}</p>}
             {comments.map((comment) => {
               const ownerId = comment.userId?._id || comment.userId?.id || comment.userId;
               const isOwner = user?.id === ownerId;
@@ -173,8 +185,8 @@ export default function Watch() {
                   </div>
                   {isOwner && (
                     <div className="comment-tools">
-                      <button type="button" onClick={() => startEdit(comment)} aria-label="Edit comment"><Edit2 size={16} /></button>
-                      <button type="button" onClick={() => removeComment(comment._id)} aria-label="Delete comment"><Trash2 size={16} /></button>
+                      <button type="button" disabled={pending} onClick={() => startEdit(comment)} aria-label="Edit comment"><Edit2 size={16} /></button>
+                      <button type="button" disabled={pending} onClick={() => removeComment(comment._id)} aria-label="Delete comment"><Trash2 size={16} /></button>
                     </div>
                   )}
                 </article>

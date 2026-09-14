@@ -1,0 +1,54 @@
+name: Quality checks
+on:
+  push:
+    branches: [main, improvements/playback-state-ui]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install client dependencies
+        run: npm install --prefix client --no-audit --no-fund
+      - name: Report lockfile changes
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { execFileSync } from "node:child_process";
+          const old = JSON.parse(execFileSync("git", ["show", "HEAD:client/package-lock.json"], { encoding: "utf8" }));
+          const next = JSON.parse(fs.readFileSync("client/package-lock.json", "utf8"));
+          for (const [key, value] of Object.entries(next.packages)) {
+            if (JSON.stringify(value) !== JSON.stringify(old.packages[key])) console.log("LOCK_ENTRY " + JSON.stringify([key, value]));
+          }
+          for (const key of Object.keys(old.packages)) {
+            if (!(key in next.packages)) console.log("LOCK_DELETE " + JSON.stringify(key));
+          }
+          NODE
+      - name: Install server dependencies
+        run: npm ci --prefix server --no-audit --no-fund
+      - name: Lint client and server
+        run: |
+          npm run lint --prefix client
+          npm run lint --prefix server
+      - name: Unit and API validation tests
+        run: |
+          npm test --prefix client
+          npm test --prefix server
+      - name: Production build
+        run: npm run build --prefix client
+      - name: Install Chromium
+        run: npx --prefix client playwright install --with-deps chromium
+      - name: Desktop and mobile regression tests
+        run: npm run test:e2e --prefix client
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: client/test-results
+          retention-days: 7
