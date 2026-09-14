@@ -2,12 +2,14 @@
 
 ## Project Description
 
-A submission-ready MERN YouTube Clone built with MongoDB, Express, React, Node.js, Vite, React Router, Axios, JWT authentication, and Mongoose. The application keeps the original client/server structure while completing the capstone requirements for a YouTube-style homepage, video player, authentication, channel management, video CRUD, comments CRUD, likes/dislikes, search, filters, seed data, and documentation.
+A submission-ready MERN YouTube Clone built with MongoDB, Express, React, Node.js, Vite, React Router, Redux Toolkit, RTK Query, Axios, JWT authentication, and Mongoose. The application keeps the original client/server structure while completing the capstone requirements for a YouTube-style homepage, video player, authentication, channel management, video CRUD, comments CRUD, likes/dislikes, search, filters, seed data, and documentation.
+
+See [IMPROVEMENTS.md](IMPROVEMENTS.md) for the assessment fixes, automated checks, playback formats, and deployment checklist.
 
 ## Features
 
-- YouTube-style sticky header with hamburger menu, brand mark, search, voice icon, and auth area
-- Toggleable sidebar with Home, Shorts, Subscriptions, You/Library, and Explore sections
+- YouTube-style sticky header with a working shared navigation menu, search, and auth area
+- Desktop sidebar and accessible mobile/watch-page drawer with Home, Creator Studio, and Explore links
 - Responsive homepage with horizontally scrollable filters and dynamic video cards
 - Case-insensitive title search that works together with category filtering
 - JWT registration/login with username, email, password validation, hashed passwords, persistent auth, and logout
@@ -36,7 +38,7 @@ A submission-ready MERN YouTube Clone built with MongoDB, Express, React, Node.j
 
 ## Technologies Used
 
-- Frontend: React 19, Vite 8, React Router 7, Axios, Lucide React, CSS
+- Frontend: React 19, Vite 8, React Router 7, Redux Toolkit, React Redux, Axios, Lucide React, CSS
 - Backend: Node.js, Express 5, MongoDB, Mongoose 9, JWT, bcryptjs, CORS, dotenv
 - Tooling: ESLint 10, npm scripts, concurrently, nodemon
 
@@ -49,10 +51,12 @@ project-root/
 |   |-- src/
 |   |   |-- components/
 |   |   |-- context/
+|   |   |-- store/
 |   |   |-- pages/
 |   |   |-- utils/
 |   |   |-- api.js
 |   |   |-- App.jsx
+|   |   |-- router.jsx
 |   |   |-- main.jsx
 |   |   `-- styles.css
 |   |-- .env.example
@@ -224,7 +228,7 @@ http://localhost:5000/api
 
 ## Authentication Flow
 
-1. Register with username, email, and password.
+1. Register with username, email, and a password containing at least 8 characters, uppercase, lowercase, a number and a special character. No whitespace; maximum 72 UTF-8 bytes.
 2. After successful registration, the frontend switches to the login form.
 3. Login with email or username and password.
 4. The backend returns a JWT and public user object.
@@ -255,7 +259,7 @@ Then test:
 - Register and login
 - Search videos by title
 - Try each category filter
-- Create a channel from `Your channel`
+- Create a channel from `Creator Studio`
 - Add, edit, and delete a video
 - Open a video page
 - Like and dislike while signed in

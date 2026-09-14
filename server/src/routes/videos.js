@@ -12,6 +12,8 @@ import {
   normalizeString
 } from "../utils/validators.js";
 
+import { resolveVideoSource, VIDEO_SOURCE_HELP } from "../utils/media.js";
+
 const router = express.Router();
 
 const populateVideo = (query) => query
@@ -31,7 +33,7 @@ const serializeVideo = (video, userId) => {
   return payload;
 };
 
-const validateVideoInput = (body, partial = false) => {
+const validateVideoInput = (body = {}, partial = false) => {
   const payload = {};
   const fields = ["title", "thumbnailUrl", "videoUrl", "description", "category", "duration"];
 
@@ -54,7 +56,7 @@ const validateVideoInput = (body, partial = false) => {
   }
 
   if (!partial || payload.videoUrl !== undefined) {
-    if (!isHttpUrl(payload.videoUrl)) throw createError(400, "Video URL must be a valid http(s) URL.");
+    if (!resolveVideoSource(payload.videoUrl)) throw createError(400, VIDEO_SOURCE_HELP);
   }
 
   if (!partial || payload.category !== undefined) {
@@ -63,7 +65,9 @@ const validateVideoInput = (body, partial = false) => {
     }
   }
 
-  if (payload.duration === "") delete payload.duration;
+  if (payload.duration && !/^(?:\d{1,2}:)?\d{1,2}:[0-5]\d$/.test(payload.duration)) {
+    throw createError(400, "Duration must use mm:ss or hh:mm:ss.");
+  }
   return payload;
 };
 

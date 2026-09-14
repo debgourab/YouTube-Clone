@@ -1,30 +1,40 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Suspense, useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import Header from "./components/Header.jsx";
-import Home from "./pages/Home.jsx";
-import Auth from "./pages/Auth.jsx";
-import Watch from "./pages/Watch.jsx";
-import Channel from "./pages/Channel.jsx";
-import NotFound from "./pages/NotFound.jsx";
-import { useAuth } from "./context/AuthContext.jsx";
-
-const Protected = ({ children }) => {
-  const { user, initializing } = useAuth();
-  if (initializing) return <main className="status-page">Checking your session...</main>;
-  return user ? children : <Navigate to="/auth" replace />;
-};
+import Sidebar from "./components/Sidebar.jsx";
+import { closeDrawer, toggleDesktop, toggleDrawer } from "./store/uiSlice.js";
 
 export default function App() {
+  const dispatch = useDispatch();
+  const location = useLocation();
+  const { desktopExpanded, drawerOpen } = useSelector((state) => state.ui);
+  const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 860px)").matches);
+  const overlay = mobile || location.pathname !== "/";
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 860px)");
+    const update = () => { setMobile(media.matches); dispatch(closeDrawer()); };
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [dispatch]);
+
+  useEffect(() => { dispatch(closeDrawer()); }, [location.key, dispatch]);
+
   return (
     <>
-      <Header />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/watch/:id" element={<Watch />} />
-        <Route path="/channel/:id" element={<Channel />} />
-        <Route path="/studio" element={<Protected><Channel studio /></Protected>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <a href="#page-content" className="skip-link">Skip to content</a>
+      <Header expanded={overlay ? drawerOpen : desktopExpanded}
+        onToggle={() => dispatch(overlay ? toggleDrawer() : toggleDesktop())} />
+      <div className={overlay ? "app-layout" : "app-layout docked-layout"}>
+        {(!overlay || drawerOpen) && <Sidebar overlay={overlay} collapsed={!overlay && !desktopExpanded}
+          onClose={() => dispatch(closeDrawer())} />}
+        <div id="page-content" className="page-content" tabIndex={-1}>
+          <Suspense fallback={<div className="status" role="status">Loading page…</div>}>
+            <Outlet />
+          </Suspense>
+        </div>
+      </div>
     </>
   );
 }

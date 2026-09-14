@@ -1,7 +1,11 @@
 import { Edit2, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api.js";
+import { useDispatch } from "react-redux";
+import { videosApi } from "../store/videosApi.js";
+import VideoPlayer from "../components/VideoPlayer.jsx";
+import { resolveVideoSource, VIDEO_SOURCE_HELP } from "../utils/media.js";
 import VideoCard from "../components/VideoCard.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { videoCategories } from "../utils/categories.js";
@@ -14,11 +18,15 @@ const blankVideo = {
   videoUrl: "",
   description: "",
   category: "React",
-  duration: "12:48"
+  duration: ""
 };
 
 export default function Channel({ studio = false }) {
   const { id } = useParams();
+  const dispatch = useDispatch();
+  const [pending, setPending] = useState(false);
+  const [preview, setPreview] = useState("");
+  const [videosLoading, setVideosLoading] = useState(false);
   const { user } = useAuth();
   const [channels, setChannels] = useState([]);
   const [channel, setChannel] = useState(null);
@@ -32,42 +40,47 @@ export default function Channel({ studio = false }) {
 
   const activeChannelId = useMemo(() => studio ? channel?._id : id, [studio, channel, id]);
 
-  const loadChannelVideos = useCallback((channelId) => {
-    if (!channelId) return;
-    api.get(`/channels/${channelId}`).then(({ data }) => {
-      if (!studio) setChannel(data.channel);
-      setVideos(data.videos);
-    });
-  }, [studio]);
-
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setError("");
-
-    if (studio) {
-      api.get("/channels/mine")
-        .then(({ data }) => {
-          setChannels(data);
-          setChannel(data[0] || null);
-          if (!data.length) setVideos([]);
-        })
-        .catch((err) => setError(err.response?.data?.message || "Could not load your channels."))
-        .finally(() => setLoading(false));
-      return;
-    }
-
-    api.get(`/channels/${id}`)
+    api.get(studio ? "/channels/mine" : `/channels/${id}`, { signal: controller.signal })
       .then(({ data }) => {
-        setChannel(data.channel);
-        setVideos(data.videos);
+        if (controller.signal.aborted) return;
+        if (studio) {
+          setChannels(Array.isArray(data) ? data : []);
+          setChannel(data[0] || null);
+          setVideos([]);
+        } else {
+          setChannel(data.channel);
+          setVideos(Array.isArray(data.videos) ? data.videos : []);
+        }
       })
-      .catch((err) => setError(err.response?.data?.message || "Channel not found."))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(err.response?.data?.message || "Could not load channel.");
+      })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, [id, studio]);
 
   useEffect(() => {
-    if (studio && activeChannelId) loadChannelVideos(activeChannelId);
-  }, [activeChannelId, studio, loadChannelVideos]);
+    if (!studio || !activeChannelId) return;
+    const controller = new AbortController();
+    setVideosLoading(true);
+    setVideos([]);
+    setEditing(null);
+    setVideoForm(blankVideo);
+    setPreview("");
+    api.get(`/channels/${activeChannelId}`, { signal: controller.signal })
+      .then(({ data }) => {
+        if (!controller.signal.aborted) setVideos(Array.isArray(data.videos) ? data.videos : []);
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(err.response?.data?.message || "Could not load channel videos.");
+      })
+      .finally(() => { if (!controller.signal.aborted) setVideosLoading(false); });
+    return () => controller.abort();
+  }, [activeChannelId, studio]);
 
   useEffect(() => {
     if (!channel) {
@@ -86,7 +99,9 @@ export default function Channel({ studio = false }) {
 
   const createChannel = async (event) => {
     event.preventDefault();
+    if (pending) return;
     setError("");
+    setPending(true);
     try {
       const { data } = await api.post("/channels", channelForm);
       setChannels((items) => [data, ...items]);
@@ -94,13 +109,15 @@ export default function Channel({ studio = false }) {
       setChannelForm(blankChannel);
     } catch (err) {
       setError(err.response?.data?.message || "Could not create channel.");
-    }
+    } finally { setPending(false); }
   };
 
   const updateChannel = async (event) => {
     event.preventDefault();
+    if (pending) return;
     if (!activeChannelId) return;
     setError("");
+    setPending(true);
 
     try {
       const { data } = await api.put(`/channels/${activeChannelId}`, settingsForm);
@@ -108,12 +125,15 @@ export default function Channel({ studio = false }) {
       setChannels((items) => items.map((item) => (item._id === data._id ? data : item)));
     } catch (err) {
       setError(err.response?.data?.message || "Could not update channel.");
-    }
+    } finally { setPending(false); }
   };
 
   const saveVideo = async (event) => {
     event.preventDefault();
+    if (pending) return;
     if (!activeChannelId) return setError("Create or select a channel before adding videos.");
+    if (!resolveVideoSource(videoForm.videoUrl)) return setError(VIDEO_SOURCE_HELP);
+    setPending(true);
     setError("");
 
     try {
@@ -124,14 +144,17 @@ export default function Channel({ studio = false }) {
         const { data } = await api.post("/videos", { ...videoForm, channelId: activeChannelId });
         setVideos((items) => [data, ...items]);
       }
+      dispatch(videosApi.util.invalidateTags(["Videos"]));
       setEditing(null);
+      setPreview("");
       setVideoForm(blankVideo);
     } catch (err) {
       setError(err.response?.data?.message || "Could not save video.");
-    }
+    } finally { setPending(false); }
   };
 
   const editVideo = (video) => {
+    setPreview("");
     setEditing(video._id);
     setVideoForm({
       title: video.title,
@@ -139,21 +162,25 @@ export default function Channel({ studio = false }) {
       videoUrl: video.videoUrl,
       description: video.description,
       category: video.category,
-      duration: video.duration || "12:48"
+      duration: video.duration || ""
     });
   };
 
   const deleteVideo = async (videoId) => {
+    if (pending) return;
+    setPending(true);
     setError("");
     try {
       await api.delete(`/videos/${videoId}`);
       setVideos((items) => items.filter((item) => item._id !== videoId));
+      dispatch(videosApi.util.invalidateTags(["Videos"]));
     } catch (err) {
       setError(err.response?.data?.message || "Could not delete video.");
-    }
+    } finally { setPending(false); }
   };
 
   const cancelEdit = () => {
+    setPreview("");
     setEditing(null);
     setVideoForm(blankVideo);
   };
@@ -172,6 +199,7 @@ export default function Channel({ studio = false }) {
 
   return (
     <main className="channel-page">
+      {error && <p className="form-error notice" role="alert">{error}</p>}
       {channel && (
         <section className="channel-hero">
           <img src={channel.channelBanner} alt="" />
@@ -191,7 +219,7 @@ export default function Channel({ studio = false }) {
         <section className="studio-panel">
           <div className="panel-column">
             <h2>Create channel</h2>
-            <form onSubmit={createChannel} className="stack-form">
+            <form onSubmit={createChannel} className="stack-form"><fieldset disabled={pending}>
               <label>
                 Channel name
                 <input value={channelForm.channelName} onChange={(event) => setChannelForm({ ...channelForm, channelName: event.target.value })} required />
@@ -213,13 +241,13 @@ export default function Channel({ studio = false }) {
                 <input value={channelForm.avatar} onChange={(event) => setChannelForm({ ...channelForm, avatar: event.target.value })} placeholder="https://... or /avatars/channel.svg" />
               </label>
               <button className="primary"><Plus size={18} /> Create channel</button>
-            </form>
+            </fieldset></form>
           </div>
 
           <div className="panel-column">
             <h2>Channel settings</h2>
             {channel ? (
-              <form onSubmit={updateChannel} className="stack-form">
+              <form onSubmit={updateChannel} className="stack-form"><fieldset disabled={pending}>
                 <label>
                   Active channel
                   <select value={activeChannelId || ""} onChange={(event) => setChannel(channels.find((item) => item._id === event.target.value))}>
@@ -247,28 +275,31 @@ export default function Channel({ studio = false }) {
                   <input value={settingsForm.avatar} onChange={(event) => setSettingsForm({ ...settingsForm, avatar: event.target.value })} />
                 </label>
                 <button className="primary"><Edit2 size={18} /> Save channel</button>
-              </form>
+              </fieldset></form>
             ) : (
               <p className="muted">Create a channel before publishing videos.</p>
             )}
           </div>
 
           <div className="panel-column wide">
-            <h2>{editing ? "Edit video" : "Upload video metadata"}</h2>
+            <h2>{editing ? "Edit video" : "Publish a video"}</h2>
             <form onSubmit={saveVideo} className="stack-form">
-              <fieldset disabled={!activeChannelId}>
+              <fieldset disabled={!activeChannelId || pending || videosLoading}>
                 <label>
                   Title
-                  <input value={videoForm.title} onChange={(event) => setVideoForm({ ...videoForm, title: event.target.value })} required />
+                  <input minLength={3} maxLength={120} value={videoForm.title} onChange={(event) => setVideoForm({ ...videoForm, title: event.target.value })} required />
                 </label>
                 <label>
                   Thumbnail URL
-                  <input value={videoForm.thumbnailUrl} onChange={(event) => setVideoForm({ ...videoForm, thumbnailUrl: event.target.value })} required />
+                  <input type="url" value={videoForm.thumbnailUrl} onChange={(event) => setVideoForm({ ...videoForm, thumbnailUrl: event.target.value })} required />
                 </label>
                 <label>
                   Video URL
-                  <input value={videoForm.videoUrl} onChange={(event) => setVideoForm({ ...videoForm, videoUrl: event.target.value })} required />
+                  <input type="url" aria-describedby="video-url-help" value={videoForm.videoUrl} onChange={(event) => { setVideoForm({ ...videoForm, videoUrl: event.target.value }); setPreview(""); }} required />
                 </label>
+                <p id="video-url-help" className="muted">{VIDEO_SOURCE_HELP}</p>
+                <button type="button" className="secondary" disabled={!resolveVideoSource(videoForm.videoUrl)} onClick={() => setPreview(videoForm.videoUrl)}>Preview video</button>
+                {preview && <VideoPlayer key={preview} url={preview} poster={videoForm.thumbnailUrl} title="Video preview" />}
                 <div className="form-row">
                   <label>
                     Category
@@ -283,7 +314,7 @@ export default function Channel({ studio = false }) {
                 </div>
                 <label>
                   Description
-                  <textarea value={videoForm.description} onChange={(event) => setVideoForm({ ...videoForm, description: event.target.value })} required />
+                  <textarea minLength={10} maxLength={2000} value={videoForm.description} onChange={(event) => setVideoForm({ ...videoForm, description: event.target.value })} required />
                 </label>
                 <div className="form-actions">
                   <button className="primary">{editing ? <Edit2 size={18} /> : <Plus size={18} />} {editing ? "Update video" : "Add video"}</button>
@@ -291,27 +322,27 @@ export default function Channel({ studio = false }) {
                 </div>
               </fieldset>
             </form>
-            {error && <p className="form-error">{error}</p>}
           </div>
         </section>
       )}
 
       <section className="channel-videos">
         <h2>{studio ? "Your videos" : "Videos"}</h2>
+        {videosLoading && <p className="status" role="status">Loading channel videos…</p>}
         <div className="video-grid">
           {videos.map((video) => (
             <div className="managed-video" key={video._id}>
               <VideoCard video={{ ...video, channelId: video.channelId || channel }} />
               {studio && (
                 <div className="manage-tools">
-                  <button type="button" onClick={() => editVideo(video)}><Edit2 size={16} /> Edit</button>
-                  <button type="button" onClick={() => deleteVideo(video._id)}><Trash2 size={16} /> Delete</button>
+                  <button type="button" disabled={pending} onClick={() => editVideo(video)}><Edit2 size={16} /> Edit</button>
+                  <button type="button" disabled={pending} onClick={() => deleteVideo(video._id)}><Trash2 size={16} /> Delete</button>
                 </div>
               )}
             </div>
           ))}
         </div>
-        {!videos.length && <p className="status">{studio && user ? "Create a channel and add your first video." : "This channel has no videos yet."}</p>}
+        {!videosLoading && !videos.length && <p className="status">{studio && user ? "Create a channel and add your first video." : "This channel has no videos yet."}</p>}
       </section>
     </main>
   );

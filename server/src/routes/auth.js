@@ -12,6 +12,8 @@ import {
   publicUser
 } from "../utils/validators.js";
 
+import { validatePassword } from "../utils/password.js";
+
 const router = express.Router();
 
 const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -23,7 +25,7 @@ const validateRegister = ({ username, email, password }) => {
   if (cleanUsername.length > 32) return "Username must be 32 characters or fewer.";
   if (!/^[a-zA-Z0-9_. -]+$/.test(cleanUsername)) return "Username can use letters, numbers, spaces, dots, dashes, and underscores.";
   if (!isValidEmail(email)) return "Enter a valid email address.";
-  if (!password || password.length < 8) return "Password must be at least 8 characters.";
+  if (validatePassword(password)) return validatePassword(password);
   return "";
 };
 
@@ -41,7 +43,7 @@ const findUserByIdentifier = (identifier) => {
 
 router.post("/register", async (req, res, next) => {
   try {
-    const message = validateRegister(req.body);
+    const message = validateRegister(req.body || {});
     if (message) return res.status(400).json({ message });
 
     const username = normalizeString(req.body.username);
@@ -67,9 +69,10 @@ router.post("/register", async (req, res, next) => {
 
 router.post("/login", async (req, res, next) => {
   try {
+    req.body ||= {};
     const identifier = normalizeString(req.body.identifier || req.body.email || req.body.username);
     if (!identifier) throw createError(400, "Email or username is required.");
-    if (!req.body.password || req.body.password.length < 8) throw createError(400, "Password must be at least 8 characters.");
+    if (typeof req.body.password !== "string" || req.body.password.length < 8) throw createError(400, "Password must be at least 8 characters.");
 
     const user = await findUserByIdentifier(identifier);
     const isPasswordValid = user ? await bcrypt.compare(req.body.password, user.password) : false;
