@@ -1,305 +1,230 @@
-# YouTube Clone MERN Capstone
+# YouTube Clone — MERN Video Platform
 
-## Project Description
+A full-stack video application for discovering videos, managing creator channels, and joining conversations through comments and reactions. Built with React, Redux Toolkit, Node.js, Express, and MongoDB.
 
-A submission-ready MERN YouTube Clone built with MongoDB, Express, React, Node.js, Vite, React Router, Redux Toolkit, RTK Query, Axios, JWT authentication, and Mongoose. The application keeps the original client/server structure while completing the capstone requirements for a YouTube-style homepage, video player, authentication, channel management, video CRUD, comments CRUD, likes/dislikes, search, filters, seed data, and documentation.
-
-See [IMPROVEMENTS.md](IMPROVEMENTS.md) for the assessment fixes, automated checks, playback formats, and deployment checklist.
+**Author:** Deb Gourab Biswas  
+**Repository:** [debgourab/YouTube-Clone](https://github.com/debgourab/YouTube-Clone)
 
 ## Features
 
-- YouTube-style sticky header with a working shared navigation menu, search, and auth area
-- Desktop sidebar and accessible mobile/watch-page drawer with Home, Creator Studio, and Explore links
-- Responsive homepage with horizontally scrollable filters and dynamic video cards
-- Case-insensitive title search that works together with category filtering
-- JWT registration/login with username, email, password validation, hashed passwords, persistent auth, and logout
-- Channel creation and channel settings for signed-in users
-- Channel page with banner, avatar, handle, description, subscriber count, and video grid
-- Authenticated video create, read, update, and delete from the channel studio
-- Watch page with playable video, metadata, channel chip, description, comments, and related videos
-- Authenticated like/dislike toggles that prevent duplicate count inflation
-- Full comment CRUD with owner-only edit/delete authorization
-- MongoDB seed script with realistic channels, videos, categories, thumbnails, and playable video URLs
-- Professional docs for setup, testing, dependencies, and assignment compliance
+- Search videos by title and filter by category.
+- Watch public direct-media links and embedded YouTube videos, with playback errors and retry controls.
+- Create and manage channels, publish video metadata, and edit or delete your own videos.
+- Register and sign in with JWT authentication and bcrypt password hashing.
+- Like/dislike videos and create, edit, or delete your own comments.
+- Navigate through a responsive sidebar and an accessible mobile/watch-page drawer.
+- Load pages and images lazily, with loading skeletons and route error recovery.
 
-## Assignment Requirements Covered
+## Tech stack
 
-- React frontend uses Vite, not Create React App
-- Backend uses ES Modules with `import` and `export`
-- MongoDB is accessed through Mongoose models for `User`, `Channel`, `Video`, and `Comment`
-- Authentication uses JWT and bcrypt password hashing
-- Search filters videos by title
-- At least six category filters are available; this project includes nine plus `All`
-- Channel creation is protected behind sign-in
-- Video CRUD is restricted to the owning channel/user
-- Comments support create, read, update, and delete with owner checks
-- Like/dislike actions are functional and persisted
-- Responsive layouts support desktop, tablet, and mobile
+| Area | Technologies |
+| --- | --- |
+| Frontend | React, Vite, React Router, CSS, Lucide React |
+| State and requests | Redux Toolkit, React Redux, RTK Query, Axios |
+| Backend | Node.js, Express, JWT, bcryptjs |
+| Database | MongoDB, Mongoose |
+| Quality | ESLint, Node.js test runner, Playwright, GitHub Actions |
+| Deployment | Render backend, Netlify frontend |
 
-## Technologies Used
+## Architecture
 
-- Frontend: React 19, Vite 8, React Router 7, Redux Toolkit, React Redux, Axios, Lucide React, CSS
-- Backend: Node.js, Express 5, MongoDB, Mongoose 9, JWT, bcryptjs, CORS, dotenv
-- Tooling: ESLint 10, npm scripts, concurrently, nodemon
+The React client calls the Express REST API. Mongoose models store users, channels, video metadata, and comments in MongoDB. Protected API routes validate JWTs and check ownership before allowing changes.
 
-## Project Structure
+Redux slices manage authentication and navigation state. RTK Query caches the video feed and invalidates it after publishing or deleting videos. Forms keep their state locally. Routing uses `createBrowserRouter`, `React.lazy`, and `Suspense`.
 
-```text
-project-root/
-|-- client/
-|   |-- public/avatars/
-|   |-- src/
-|   |   |-- components/
-|   |   |-- context/
-|   |   |-- store/
-|   |   |-- pages/
-|   |   |-- utils/
-|   |   |-- api.js
-|   |   |-- App.jsx
-|   |   |-- router.jsx
-|   |   |-- main.jsx
-|   |   `-- styles.css
-|   |-- .env.example
-|   |-- eslint.config.js
-|   |-- package.json
-|   `-- vite.config.js
-|-- server/
-|   |-- src/
-|   |   |-- data/
-|   |   |-- middleware/
-|   |   |-- models/
-|   |   |-- routes/
-|   |   |-- utils/
-|   |   |-- app.js
-|   |   |-- db.js
-|   |   `-- server.js
-|   |-- .env.example
-|   |-- eslint.config.js
-|   `-- package.json
-|-- ASSIGNMENT_CHECKLIST.md
-|-- DEPENDENCY_AUDIT.md
-|-- TESTING.md
-|-- README.md
-`-- package.json
+| Path | Purpose |
+| --- | --- |
+| [client/src/pages/](client/src/pages/) | Home, authentication, watch, channel, and studio pages |
+| [client/src/components/](client/src/components/) | Shared navigation, video cards, player, and filters |
+| [client/src/store/](client/src/store/) | Redux slices, store configuration, and RTK Query |
+| [client/src/context/](client/src/context/) | Compatibility hook for Redux authentication |
+| [client/src/utils/](client/src/utils/) | Media, password, formatting, and session helpers |
+| [client/src/router.jsx](client/src/router.jsx) | Routes and protected-page handling |
+| [client/src/styles.css](client/src/styles.css) | Responsive layouts and component styles |
+| [client/tests/](client/tests/) | Client utility tests |
+| [client/e2e/](client/e2e/) | Desktop and mobile browser tests |
+| [server/src/models/](server/src/models/) | User, Channel, Video, and Comment schemas |
+| [server/src/routes/](server/src/routes/) | Authentication, channels, videos, and comments API |
+| [server/src/middleware/](server/src/middleware/) | Authentication middleware |
+| [server/src/data/seed.js](server/src/data/seed.js) | Optional development demo data |
+| [server/tests/](server/tests/) | Validation and API tests |
+| [.github/workflows/quality.yml](.github/workflows/quality.yml) | Automated quality checks |
+| [render.yaml](render.yaml) / [netlify.toml](netlify.toml) | Hosting configuration |
+
+## Run locally
+
+### 1. Clone and install
+
+Use Node.js 22 and a local MongoDB instance or MongoDB Atlas database.
+
+```bash
+git clone https://github.com/debgourab/YouTube-Clone.git
+cd YouTube-Clone
+npm ci
+npm ci --prefix client
+npm ci --prefix server
 ```
 
-## Prerequisites
+### 2. Configure the environment
 
-- Node.js `20.19.0` or newer
-- npm `11` or newer recommended
-- MongoDB running locally or a MongoDB Atlas connection string
-- VS Code or another code editor
+Copy [server/.env.example](server/.env.example) to `server/.env`, and [client/.env.example](client/.env.example) to `client/.env`.
 
-## Environment Variables
-
-Create `server/.env` from `server/.env.example`:
+Server configuration:
 
 ```env
 PORT=5000
 MONGODB_URI=mongodb://127.0.0.1:27017/youtube_clone_capstone
-JWT_SECRET=replace_this_with_a_long_random_secret
+JWT_SECRET=replace_with_a_long_random_secret
 CLIENT_URL=http://127.0.0.1:5173
 ```
 
-Optional client override in `client/.env`:
+Client configuration:
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
 
-Do not commit real secrets.
+For Atlas, replace `MONGODB_URI` with your connection string and configure database-user and network access. Keep credentials in environment variables; do not commit `.env` files.
 
-## Installation
+### 3. Start the application
 
-From the project root:
-
-```bash
-npm run install:all
-```
-
-## MongoDB Setup
-
-Start MongoDB locally with MongoDB Compass, Windows Services, or your normal `mongod` setup. The default local URI is:
-
-```text
-mongodb://127.0.0.1:27017/youtube_clone_capstone
-```
-
-For MongoDB Atlas, put the Atlas URI in `server/.env` as `MONGODB_URI`.
-
-## Backend Setup
-
-```bash
-cd server
-npm install
-npm start
-```
-
-Development mode with automatic restart:
-
-```bash
-cd server
-npm run dev
-```
-
-## Frontend Setup
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-Frontend URL:
-
-```text
-http://127.0.0.1:5173
-```
-
-## Seed Database
-
-From the root:
-
-```bash
-npm run seed
-```
-
-Seed login accounts:
-
-```text
-deb@example.com / password123
-maya@example.com / password123
-```
-
-## Running Development Environment
-
-From the root after creating `server/.env`:
+From the repository root:
 
 ```bash
 npm run dev
 ```
 
-This starts:
+- Frontend: [http://127.0.0.1:5173](http://127.0.0.1:5173)
+- API base URL: [http://localhost:5000/api](http://localhost:5000/api)
+- API status: [http://localhost:5000/](http://localhost:5000/)
 
-- Backend API: `http://localhost:5000`
-- Frontend app: `http://127.0.0.1:5173`
+To start services separately, use `npm run server` and `npm run client` in separate terminals.
 
-## API Base URL
+### Optional development data
 
-```text
-http://localhost:5000/api
-```
+Run `npm run seed` against a development database to add sample channels and videos. The script skips seeding when videos already exist.
 
-## API Endpoints
+Local demo accounts are `deb@example.com` and `maya@example.com`, both with password `password123`. These are seeded demonstration accounts; new registrations require the stronger rules below. Use your own accounts for a public deployment. The seed script's `--reset` option deletes existing data and is not required for updates or redeployment.
 
-### Authentication
+## Application routes
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
+| Route | Page |
+| --- | --- |
+| `/` | Video feed, search, and category filters |
+| `/auth` | Registration and sign-in |
+| `/watch/:id` | Player, reactions, comments, and related videos |
+| `/channel/:id` | Public channel page |
+| `/studio` | Protected channel and video management |
 
-### Videos
+## Video publishing
 
-- `GET /api/videos`
-- `GET /api/videos?search=React&category=React`
-- `GET /api/videos/:id`
-- `POST /api/videos`
-- `PUT /api/videos/:id`
-- `DELETE /api/videos/:id`
-- `PUT /api/videos/:id/like`
-- `PUT /api/videos/:id/dislike`
-- `GET /api/videos/:videoId/comments`
-- `POST /api/videos/:videoId/comments`
+Sign in, open Creator Studio, create or select a channel, and enter the video's title, description, thumbnail URL, category, and video URL. Use **Preview video**, then **Add video**.
 
-### Channels
+The application stores video URLs and metadata; it does not upload or transcode binary video files.
 
-- `POST /api/channels`
-- `GET /api/channels/mine`
-- `GET /api/channels/user/:userId`
-- `GET /api/channels/:id`
-- `PUT /api/channels/:id`
+Supported sources include public MP4, WebM, Ogg/OGV, and M4V URLs, plus YouTube watch, share, shorts, live, and embed links. Use HTTPS media on an HTTPS deployment. Private or expired URLs, embedding restrictions, blocked hosts, and unsupported codecs can prevent playback. Drive page links and extensionless streaming endpoints are not supported.
 
-### Comments
+## Authentication and API
 
-- `GET /api/comments/video/:videoId`
-- `POST /api/comments/video/:videoId`
-- `PUT /api/comments/:id`
-- `DELETE /api/comments/:id`
+New passwords require at least eight characters, uppercase and lowercase letters, a number, and a special character. Whitespace is disallowed, and the maximum is 72 UTF-8 bytes.
 
-## Authentication Flow
-
-1. Register with username, email, and a password containing at least 8 characters, uppercase, lowercase, a number and a special character. No whitespace; maximum 72 UTF-8 bytes.
-2. After successful registration, the frontend switches to the login form.
-3. Login with email or username and password.
-4. The backend returns a JWT and public user object.
-5. The frontend stores the JWT, verifies it with `/api/auth/me` on refresh, and clears invalid sessions.
-6. Protected backend routes require:
+Use `Content-Type: application/json` for JSON requests. Protected endpoints also require:
 
 ```text
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-## Testing Instructions
+| Method | Endpoint (relative to /api) | Purpose |
+| --- | --- | --- |
+| POST | `/auth/register` | Create an account |
+| POST | `/auth/login` | Sign in and receive a token |
+| GET | `/auth/me` | Read the signed-in user |
+| GET | `/videos?search=React&category=React` | List, search, and filter videos |
+| GET | `/videos/:id` | Get video, comments, and related videos |
+| POST | `/videos` | Publish video metadata |
+| PUT / DELETE | `/videos/:id` | Edit or delete an owned video |
+| PUT | `/videos/:id/like`, `/videos/:id/dislike` | Toggle reactions |
+| POST | `/channels` | Create a channel |
+| GET | `/channels/mine` | List your channels |
+| GET | `/channels/user/:userId` | List a user's channels |
+| GET / PUT | `/channels/:id` | Read a channel or update an owned channel |
+| GET / POST | `/videos/:videoId/comments` | Read or create comments |
+| PUT / DELETE | `/comments/:id` | Update or delete an owned comment |
 
-Run these commands from the root:
+### Quick Postman / Thunder Client check
+
+Register with `POST /api/auth/register`:
+
+```json
+{
+  "username": "demoCreator",
+  "email": "creator@example.com",
+  "password": "CreatorPass1!"
+}
+```
+
+Expect `201 Created`. Then call `POST /api/auth/login`:
+
+```json
+{
+  "identifier": "creator@example.com",
+  "password": "CreatorPass1!"
+}
+```
+
+Expect `200 OK`. Copy the returned token into the Bearer authorization header and call `GET /api/auth/me`. Invalid registration input returns `400`, invalid credentials return `401`, and duplicate accounts return `409`.
+
+For a complete manual flow, create a channel in Studio, publish a supported video link, play it, test reactions and comments, then edit and delete your own content. Use another account to check ownership restrictions and repeat at mobile width.
+
+## Tests and production build
+
+Run from the repository root:
 
 ```bash
 npm run lint
+npm test --prefix client
+npm test --prefix server
 npm run build
 ```
 
-Run the backend and frontend:
+For browser tests:
 
 ```bash
-npm run dev
+cd client
+npx playwright install chromium
+npm run test:e2e
 ```
 
-Then test:
+GitHub Actions runs clean dependency installs, linting, validation tests, the production build, and desktop/mobile Playwright tests. Browser tests mock API responses and generate a real WebM fixture to verify playback; live database persistence and third-party media availability require separate deployment checks.
 
-- Register and login
-- Search videos by title
-- Try each category filter
-- Create a channel from `Creator Studio`
-- Add, edit, and delete a video
-- Open a video page
-- Like and dislike while signed in
-- Add, edit, and delete your own comment
-- Confirm another user cannot edit/delete your content
-- Resize the browser to desktop, tablet, and mobile widths
-
-## Thunder Client/Postman Testing
-
-Use `TESTING.md` for an endpoint-by-endpoint sequence with request bodies, expected status codes, and authorization notes.
-
-## Production Build
-
-```bash
-npm run build
-```
-
-The frontend production output is created in `client/dist/`.
-
-## Screens / Pages
-
-- `/` - YouTube-style homepage
-- `/auth` - Login/register page
-- `/watch/:id` - Video player page
-- `/channel/:id` - Public channel page
-- `/studio` - Protected channel/video management page
-
-## GitHub Submission Notes
-
-- Do not submit `node_modules/`
-- Do not submit `.env`
-- Keep `package-lock.json`, `client/package-lock.json`, and `server/package-lock.json`
-- Include `README.md`, `TESTING.md`, `DEPENDENCY_AUDIT.md`, and `ASSIGNMENT_CHECKLIST.md`
+The frontend build is written to `client/dist/`.
 
 ## Deployment
 
-Use [DEPLOYMENT.md](DEPLOYMENT.md) for the Render backend and Netlify frontend deployment steps.
+The repository includes configuration for a Render backend and Netlify frontend.
+
+| Setting | Render | Netlify |
+| --- | --- | --- |
+| Branch | `main` | `main` |
+| Root/base directory | `server` | `client` |
+| Build command | `npm install` | `npm run build` |
+| Start command | `npm start` | — |
+| Publish directory | — | `dist` |
+
+Set these environment variables:
+
+- **Render:** `MONGODB_URI`, `JWT_SECRET`, and `CLIENT_URL` set to the exact frontend origin.
+- **Netlify:** `VITE_API_URL` set to your backend URL followed by `/api`.
+
+After merging updates into `main`, deploy the latest commit on both services. Changes to `VITE_API_URL` require a frontend rebuild. No database reset or reseed is needed.
+
+If requests fail, check the API base URL, the exact CORS origin, and MongoDB connectivity. If a video fails, use the player's original-link action to check whether its source remains publicly accessible.
 
 ## Author
 
-Deb Gourab Biswas
+**Deb Gourab Biswas**
 
-## GitHub Repo : [https://github.com/debgourab/YouTube-Clone.git]
+- [GitHub profile](https://github.com/debgourab)
+- [Project repository](https://github.com/debgourab/YouTube-Clone)
+
+This is an independent learning and portfolio project inspired by YouTube, with no affiliation to YouTube or Google.
